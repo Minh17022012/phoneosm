@@ -1,0 +1,9 @@
+Package: com.custom.phoneosm
+Name: phoneosm
+Version: 1.0.0
+Architecture: iphoneos-arm64e
+Description: Giao dien thanh Tab Bar noi dang vien thuoc Liquid Glass iOS 26 cho ung dung Dien thoai (Ho tro Dopamine Roothide / Bootstrap).
+Maintainer: Developer
+Author: Developer
+Section: Tweaks
+Depends: mobilesubstrate (>= 0.9.5000)
