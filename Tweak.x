@@ -1,198 +1,119 @@
 #import <UIKit/UIKit.h>
+#import <Contacts/Contacts.h>
 
-@interface UITabBarController (PhoneOSM)
-- (void)phoneosm_setupFloatingSearchButton;
-- (void)phoneosm_openSearchAction;
+@interface PHleyiciKeypadViewController : UIViewController
+- (NSString *)numericSearchString;
 @end
 
-%hook UITabBarController
+%hook PHleyiciKeypadViewController
 
-- (void)viewDidLayoutSubviews {
+- (void)viewDidLoad {
     %orig;
-    if (![[[NSBundle mainBundle] bundleIdentifier] isEqualToString:@"com.apple.mobilephone"]) {
-        return;
-    }
+    // Tùy chỉnh giao diện bàn phím và chèn khung gợi ý tìm kiếm danh bạ
+}
 
-    if (self.viewControllers.count > 3) {
-        NSMutableArray *filteredTabs = [NSMutableArray array];
-        for (UIViewController *vc in self.viewControllers) {
-            NSUInteger idx = [self.viewControllers indexOfObject:vc];
-            if (idx == 1 || idx == 2 || idx == 3) {
-                [filteredTabs addObject:vc];
-            }
-        }
-        if (filteredTabs.count == 3) {
-            [self setViewControllers:filteredTabs animated:NO];
-        }
-    }
+// Bắt sự kiện mỗi khi người dùng bấm phím số hoặc xóa số
+- (void)phonePad:(id)pad appendString:(NSString *)string {
+    %orig;
+    [self performSelector:@selector(phoneosm_updateT9Suggestions) withObject:nil afterDelay:0.05];
+}
 
-    [self phoneosm_setupFloatingSearchButton];
+- (void)phonePadDeleteCharacter:(id)pad {
+    %orig;
+    [self performSelector:@selector(phoneosm_updateT9Suggestions) withObject:nil afterDelay:0.05];
 }
 
 %new
-- (void)phoneosm_setupFloatingSearchButton {
-    UIButton *searchBtn = [self.view viewWithTag:88991];
-    UITabBar *tabBar = self.tabBar;
-    if (!tabBar || tabBar.hidden) return;
+- (void)phoneosm_updateT9Suggestions {
+    // Lấy chuỗi số đang gõ trên bàn phím
+    NSString *currentQuery = nil;
+    if ([self respondsToSelector:@selector(numericSearchString)]) {
+        currentQuery = [self numericSearchString];
+    }
+    
+    UIView *keypadView = self.view;
+    UIVisualEffectView *suggestionBox = [keypadView viewWithTag:778899];
 
-    CGFloat pillHeight = 56.0;
-    CGFloat screenWidth = self.view.bounds.size.width;
-    if (screenWidth <= 0) screenWidth = [UIScreen mainScreen].bounds.size.width;
-    
-    CGFloat leftMargin = 16.0;
-    CGFloat rightMargin = 16.0;
-    CGFloat gap = 12.0;
-    CGFloat circleSize = pillHeight;
-    
-    CGFloat tabBarWidth = screenWidth - leftMargin - rightMargin - gap - circleSize;
-    CGFloat exactY = tabBar.frame.origin.y;
-    if (exactY <= 0) {
-        exactY = [UIScreen mainScreen].bounds.size.height - pillHeight - 24.0;
+    if (!currentQuery || currentQuery.length == 0) {
+        // Nếu chưa gõ số thì ẩn hộp gợi ý đi
+        [UIView animateWithDuration:0.2 animations:^{
+            suggestionBox.alpha = 0.0;
+        }];
+        return;
     }
 
-    // Ép cứng khung UITabBar bên trái
-    tabBar.frame = CGRectMake(leftMargin, exactY, tabBarWidth, pillHeight);
-
-    if (!searchBtn) {
-        searchBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-        searchBtn.tag = 88991;
+    // Nếu chưa có khung gợi ý, tiến hành tạo mới dạng viên thuốc kính mờ phong cách Liquid Glass
+    if (!suggestionBox) {
+        CGFloat screenWidth = keypadView.bounds.size.width;
+        CGFloat boxWidth = screenWidth - 32.0;
+        CGFloat boxHeight = 90.0;
+        CGFloat boxY = 60.0; // Nằm phía trên bàn phím số
         
-        // GIỮ NGUYÊN hiệu ứng kính mờ (Blur) và viền cho nút tìm kiếm tròn bên phải
         UIBlurEffect *blur = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterial];
-        UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:blur];
-        blurView.frame = CGRectMake(0, 0, circleSize, circleSize);
-        blurView.userInteractionEnabled = NO;
-        blurView.layer.cornerRadius = circleSize / 2.0;
-        blurView.clipsToBounds = YES;
-        [searchBtn addSubview:blurView];
+        suggestionBox = [[UIVisualEffectView alloc] initWithEffect:blur];
+        suggestionBox.tag = 778899;
+        suggestionBox.frame = CGRectMake(16.0, boxY, boxWidth, boxHeight);
+        suggestionBox.layer.cornerRadius = 16.0;
+        suggestionBox.clipsToBounds = YES;
+        suggestionBox.layer.borderWidth = 0.5;
+        suggestionBox.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.5].CGColor;
+        
+        // Thêm nhãn hiển thị tên gợi ý và số điện thoại khớp
+        UILabel *nameLbl = [[UILabel alloc] initWithFrame:CGRectMake(16, 12, boxWidth - 32, 24)];
+        nameLbl.tag = 778901;
+        nameLbl.font = [UIFont systemFontOfSize:16.0 weight:UIFontWeightsemibold];
+        nameLbl.textColor = [UIColor labelColor];
+        [suggestionBox.contentView addSubview:nameLbl];
 
-        UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:20.0 weight:UIImageSymbolWeightSemibold];
-        UIImage *searchImg = [UIImage systemImageNamed:@"magnifyingglass" withConfiguration:config];
-        UIImageView *iconView = [[UIImageView alloc] initWithImage:searchImg];
-        iconView.tintColor = [UIColor labelColor];
-        iconView.contentMode = UIViewContentModeScaleAspectFit;
-        iconView.frame = CGRectMake((circleSize - 24) / 2.0, (circleSize - 24) / 2.0, 24, 24);
-        [searchBtn addSubview:iconView];
+        UILabel *phoneLbl = [[UILabel alloc] initWithFrame:CGRectMake(16, 38, boxWidth - 32, 20)];
+        phoneLbl.tag = 778902;
+        phoneLbl.font = [UIFont systemFontOfSize:14.0 weight:UIFontWeightRegular];
+        phoneLbl.textColor = [UIColor secondaryLabelColor];
+        [suggestionBox.contentView addSubview:phoneLbl];
 
-        searchBtn.layer.cornerRadius = circleSize / 2.0;
-        searchBtn.layer.borderWidth = 0.6;
-        searchBtn.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.65].CGColor;
-        searchBtn.layer.shadowColor = [UIColor blackColor].CGColor;
-        searchBtn.layer.shadowOpacity = 0.12;
-        searchBtn.layer.shadowOffset = CGSizeMake(0, 4);
-        searchBtn.layer.shadowRadius = 10.0;
-
-        [searchBtn addTarget:self action:@selector(phoneosm_openSearchAction) forControlEvents:UIControlEventTouchUpInside];
-        [self.view addSubview:searchBtn];
+        [keypadView addSubview:suggestionBox];
     }
 
-    CGFloat xPos = leftMargin + tabBarWidth + gap;
-    searchBtn.frame = CGRectMake(xPos, exactY, circleSize, circleSize);
-    [self.view bringSubviewToFront:searchBtn];
-}
+    // Truy vấn danh bạ an toàn qua CNContactStore (chạy trên background thread để chống treo máy)
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        CNContactStore *store = [[CNContactStore alloc] init];
+        NSArray *keys = @[CNContactGivenNameKey, CNContactFamilyNameKey, CNContactPhoneNumbersKey];
+        CNContactFetchRequest *request = [[CNContactFetchRequest alloc] initWithKeysToFetch:keys];
+        
+        __block NSString *matchedName = nil;
+        __block NSString *matchedPhone = nil;
 
-%new
-- (void)phoneosm_openSearchAction {
-    if (self.viewControllers.count >= 2) {
-        self.selectedIndex = 1;
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            UIViewController *selectedVC = self.selectedViewController;
-            UINavigationController *nav = [selectedVC isKindOfClass:[UINavigationController class]] ? (UINavigationController *)selectedVC : selectedVC.navigationController;
-            UISearchController *searchController = nav.topViewController.navigationItem.searchController;
-            if (searchController) {
-                searchController.active = YES;
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    [searchController.searchBar becomeFirstResponder];
-                });
-            }
-        });
-    }
-}
-
-%end
-
-%hook UITabBar
-
-- (void)layoutSubviews {
-    %orig;
-    if (![[[NSBundle mainBundle] bundleIdentifier] isEqualToString:@"com.apple.mobilephone"]) {
-        return;
-    }
-
-    self.layer.cornerRadius = self.bounds.size.height / 2.0;
-    self.layer.masksToBounds = NO;
-    self.layer.borderWidth = 0.6;
-    self.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.65].CGColor;
-    self.layer.shadowColor = [UIColor blackColor].CGColor;
-    self.layer.shadowOpacity = 0.12;
-    self.layer.shadowOffset = CGSizeMake(0, 4);
-    self.layer.shadowRadius = 10.0;
-
-    for (UIView *sub in self.subviews) {
-        if ([sub isKindOfClass:[UIImageView class]] && sub.bounds.size.height <= 1.0) {
-            sub.hidden = YES;
-        }
-    }
-
-    UIBlurEffect *blur = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterial];
-    UIVisualEffectView *blurView = [self viewWithTag:9988];
-    if (!blurView) {
-        blurView = [[UIVisualEffectView alloc] initWithEffect:blur];
-        blurView.tag = 9988;
-        blurView.userInteractionEnabled = NO;
-        blurView.clipsToBounds = YES;
-        [self insertSubview:blurView atIndex:0];
-    }
-    blurView.frame = self.bounds;
-    blurView.layer.cornerRadius = self.bounds.size.height / 2.0;
-
-    // XÓA NỀN CỦA 3 THANH TAB BÊN TRONG (UITabBarButton)
-    for (UIView *sub in self.subviews) {
-        if ([NSStringFromClass([sub class]) isEqualToString:@"UITabBarButton"]) {
-            // Đặt trong suốt nền của button
-            sub.backgroundColor = [UIColor clearColor];
-            for (UIView *subSub in sub.subviews) {
-                NSString *className = NSStringFromClass([subSub class]);
-                if ([className containsString:@"Background"] || 
-                    [className containsString:@"Effect"] ||
-                    [className containsString:@"BarBackground"] ||
-                    [className containsString:@"Highlight"]) {
-                    subSub.hidden = YES;
+        [store enumerateContactsWithFetchRequest:request error:nil usingBlock:^(CNContact *contact, BOOL *stop) {
+            for (CNLabeledValue<CNPhoneNumber *> *labelValue in contact.phoneNumbers) {
+                NSString *phoneNum = labelValue.value.stringValue;
+                // Lọc chuỗi số đơn giản để so khớp
+                NSString *cleanPhone = [[phoneNum componentsSeparatedByCharactersInSet:[[NSCharacterSet decimalDigitCharacterSet] invertedSet]] componentsJoinedByString:@""];
+                
+                if ([cleanPhone containsString:currentQuery]) {
+                    matchedName = [NSString stringWithFormat:@"%@ %@", contact.familyName ?: @"", contact.givenName ?: @""];
+                    matchedPhone = phoneNum;
+                    *stop = YES;
+                    break;
                 }
             }
-        }
-    }
+            if (matchedName) *stop = YES;
+        }];
 
-    // Ô nền sáng nhỏ (pill) cho tab đang chọn
-    UIView *selectionPill = [self viewWithTag:9989];
-    if (!selectionPill) {
-        selectionPill = [[UIView alloc] init];
-        selectionPill.tag = 9989;
-        selectionPill.backgroundColor = [UIColor colorWithWhite:0.5 alpha:0.12];
-        selectionPill.userInteractionEnabled = NO;
-        [self insertSubview:selectionPill aboveSubview:blurView];
-    }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UILabel *nameLbl = [suggestionBox viewWithTag:778901];
+            UILabel *phoneLbl = [suggestionBox viewWithTag:778902];
 
-    NSMutableArray *tabButtons = [NSMutableArray array];
-    for (UIView *sub in self.subviews) {
-        if ([NSStringFromClass([sub class]) isEqualToString:@"UITabBarButton"]) {
-            [tabButtons addObject:sub];
-        }
-    }
-    [tabButtons sortUsingComparator:^NSComparisonResult(UIView *v1, UIView *v2) {
-        return [@(v1.frame.origin.x) compare:@(v2.frame.origin.x)];
-    }];
-
-    NSInteger selectedIdx = [self.items indexOfObject:self.selectedItem];
-    if (selectedIdx >= 0 && selectedIdx < tabButtons.count) {
-        UIView *activeBtn = tabButtons[selectedIdx];
-        CGRect pillRect = CGRectInset(activeBtn.frame, 4.0, 4.0);
-        selectionPill.frame = pillRect;
-        selectionPill.layer.cornerRadius = pillRect.size.height / 2.0;
-        selectionPill.hidden = NO;
-    } else {
-        selectionPill.hidden = YES;
-    }
+            if (matchedName) {
+                nameLbl.text = matchedName;
+                phoneLbl.text = matchedPhone;
+                suggestionBox.alpha = 1.0;
+            } else {
+                nameLbl.text = [NSString stringWithFormat:@"Tìm kiếm số: %@", currentQuery];
+                phoneLbl.text = @"Không có trong danh bạ (Bấm để thêm mới)";
+                suggestionBox.alpha = 1.0;
+            }
+        });
+    });
 }
 
 %end
