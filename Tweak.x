@@ -57,13 +57,30 @@
         searchBtn = [UIButton buttonWithType:UIButtonTypeCustom];
         searchBtn.tag = 88991;
         
-        // Nút tìm kiếm dạng icon kính lúp thuần túy không viền nền
-        UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:22.0 weight:UIImageSymbolWeightSemibold];
+        // GIỮ NGUYÊN hiệu ứng kính mờ (Blur) và viền cho nút tìm kiếm tròn bên phải
+        UIBlurEffect *blur = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterial];
+        UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:blur];
+        blurView.frame = CGRectMake(0, 0, circleSize, circleSize);
+        blurView.userInteractionEnabled = NO;
+        blurView.layer.cornerRadius = circleSize / 2.0;
+        blurView.clipsToBounds = YES;
+        [searchBtn addSubview:blurView];
+
+        UIImageSymbolConfiguration *config = [UIImageSymbolConfiguration configurationWithPointSize:20.0 weight:UIImageSymbolWeightSemibold];
         UIImage *searchImg = [UIImage systemImageNamed:@"magnifyingglass" withConfiguration:config];
-        
-        [searchBtn setImage:searchImg forState:UIControlStateNormal];
-        searchBtn.tintColor = [UIColor labelColor];
-        searchBtn.contentMode = UIViewContentModeScaleAspectFit;
+        UIImageView *iconView = [[UIImageView alloc] initWithImage:searchImg];
+        iconView.tintColor = [UIColor labelColor];
+        iconView.contentMode = UIViewContentModeScaleAspectFit;
+        iconView.frame = CGRectMake((circleSize - 24) / 2.0, (circleSize - 24) / 2.0, 24, 24);
+        [searchBtn addSubview:iconView];
+
+        searchBtn.layer.cornerRadius = circleSize / 2.0;
+        searchBtn.layer.borderWidth = 0.6;
+        searchBtn.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.65].CGColor;
+        searchBtn.layer.shadowColor = [UIColor blackColor].CGColor;
+        searchBtn.layer.shadowOpacity = 0.12;
+        searchBtn.layer.shadowOffset = CGSizeMake(0, 4);
+        searchBtn.layer.shadowRadius = 10.0;
 
         [searchBtn addTarget:self action:@selector(phoneosm_openSearchAction) forControlEvents:UIControlEventTouchUpInside];
         [self.view addSubview:searchBtn];
@@ -129,20 +146,24 @@
     blurView.frame = self.bounds;
     blurView.layer.cornerRadius = self.bounds.size.height / 2.0;
 
-    // Xóa nền của các nút tab bên trong, chỉ giữ lại thanh viên thuốc chung
+    // XÓA NỀN CỦA 3 THANH TAB BÊN TRONG (UITabBarButton)
     for (UIView *sub in self.subviews) {
         if ([NSStringFromClass([sub class]) isEqualToString:@"UITabBarButton"]) {
+            // Đặt trong suốt nền của button
+            sub.backgroundColor = [UIColor clearColor];
             for (UIView *subSub in sub.subviews) {
-                // Ẩn các hiệu ứng nền/khung chọn mặc định của hệ thống bên trong từng tab
-                if ([NSStringFromClass([subSub class]) containsString:@"Background"] || 
-                    [NSStringFromClass([subSub class]) containsString:@"Effect"] ||
-                    [NSStringFromClass([subSub class]) containsString:@"BarBackground"]) {
+                NSString *className = NSStringFromClass([subSub class]);
+                if ([className containsString:@"Background"] || 
+                    [className containsString:@"Effect"] ||
+                    [className containsString:@"BarBackground"] ||
+                    [className containsString:@"Highlight"]) {
                     subSub.hidden = YES;
                 }
             }
         }
     }
 
+    // Ô nền sáng nhỏ (pill) cho tab đang chọn
     UIView *selectionPill = [self viewWithTag:9989];
     if (!selectionPill) {
         selectionPill = [[UIView alloc] init];
