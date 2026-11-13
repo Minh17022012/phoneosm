@@ -6,6 +6,6 @@ include $(THEOS)/makefiles/common.mk
 TWEAK_NAME := phoneosm
 
 phoneosm_FILES = Tweak.x
-phoneosm_FRAMEWORKS = UIKit Foundation Contacts
+phoneosm_FRAMEWORKS = UIKit Foundation
 
 include $(THEOS_MAKE_PATH)/tweak.mk
