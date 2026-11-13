@@ -5,7 +5,6 @@
 - (void)phoneosm_openSearchAction;
 @end
 
-// Hook tinh chỉnh TabBar và giao diện chính
 %hook UITabBarController
 
 - (void)viewDidLayoutSubviews {
@@ -14,7 +13,7 @@
         return;
     }
 
-    // Rút gọn còn 3 tab chính: Cuộc gọi, Danh bạ, Bàn phím
+    // Rút gọn chuẩn 3 tab chính: Cuộc gọi, Danh bạ, Bàn phím
     if (self.viewControllers.count > 3) {
         NSMutableArray *filteredTabs = [NSMutableArray array];
         for (UIViewController *vc in self.viewControllers) {
@@ -34,18 +33,24 @@
 %new
 - (void)phoneosm_setupFloatingSearchButton {
     UIButton *searchBtn = [self.view viewWithTag:88991];
-    if (!self.tabBar || self.tabBar.hidden) return;
+    UITabBar *tabBar = self.tabBar;
+    if (!tabBar || tabBar.hidden) return;
 
     CGFloat pillHeight = 56.0;
-    CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
-    CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
+    CGFloat screenWidth = self.view.bounds.size.width;
+    if (screenWidth <= 0) screenWidth = [UIScreen mainScreen].bounds.size.width;
+    
     CGFloat leftMargin = 16.0;
     CGFloat rightMargin = 16.0;
     CGFloat gap = 12.0;
     CGFloat circleSize = pillHeight;
     
+    // Ép cứng chiều rộng TabBar vừa đúng cho 3 tab
     CGFloat tabBarWidth = screenWidth - leftMargin - rightMargin - gap - circleSize;
-    CGFloat exactY = screenHeight - pillHeight - 24.0;
+    CGFloat exactY = [UIScreen mainScreen].bounds.size.height - pillHeight - 24.0;
+
+    // Cố định frame của UITabBar
+    tabBar.frame = CGRectMake(leftMargin, exactY, tabBarWidth, pillHeight);
 
     if (!searchBtn) {
         searchBtn = [UIButton buttonWithType:UIButtonTypeCustom];
@@ -79,6 +84,7 @@
         [self.view addSubview:searchBtn];
     }
 
+    // Đặt nút kính lúp nằm thẳng hàng tuyệt đối với TabBar bên trái
     CGFloat xPos = leftMargin + tabBarWidth + gap;
     searchBtn.frame = CGRectMake(xPos, exactY, circleSize, circleSize);
     [self.view bringSubviewToFront:searchBtn];
@@ -104,26 +110,7 @@
 
 %end
 
-// Hook tinh chỉnh TabBar thành viên thuốc nổi kính mờ
 %hook UITabBar
-
-- (void)setFrame:(CGRect)frame {
-    if ([[[NSBundle mainBundle] bundleIdentifier] isEqualToString:@"com.apple.mobilephone"]) {
-        CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
-        CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
-        CGFloat leftMargin = 16.0;
-        CGFloat rightMargin = 16.0;
-        CGFloat gap = 12.0;
-        CGFloat pillHeight = 56.0;
-        CGFloat circleSize = pillHeight;
-
-        frame.origin.x = leftMargin;
-        frame.size.width = screenWidth - leftMargin - rightMargin - gap - circleSize;
-        frame.size.height = pillHeight;
-        frame.origin.y = screenHeight - pillHeight - 24.0;
-    }
-    %orig(frame);
-}
 
 - (void)layoutSubviews {
     %orig;
@@ -187,16 +174,6 @@
     } else {
         selectionPill.hidden = YES;
     }
-}
-
-%end
-
-// Hook bàn phím số (Keypad) để kích hoạt hiển thị ô gợi ý danh bạ tương tự ảnh số 3
-%hook PHleyiciKeypadViewController
-
-- (void)viewDidLoad {
-    %orig;
-    // Tối ưu hóa giao diện phím bấm số bo tròn mềm mại phong cách iOS 26
 }
 
 %end
