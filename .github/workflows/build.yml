@@ -1,5 +1,4 @@
 name: Build phoneosm Roothide (.deb)
-
 on:
   push:
   workflow_dispatch:
@@ -15,12 +14,14 @@ jobs:
         run: |
           brew install ldid xz dpkg
 
-      - name: Setup Theos Environment
+      - name: Setup Theos Environment Safely
         run: |
-          git clone --recursive https://github.com/roothide/theos.git $HOME/theos
+          rm -rf $HOME/theos
+          git clone --depth=1 --recursive https://github.com/roothide/theos.git $HOME/theos
           mkdir -p $HOME/theos/sdks
-          curl -LO https://github.com/xybp888/iOS-SDKs/releases/download/iOS-SDKs/iPhoneOS16.5.sdk.tar.xz
+          curl -L -o iPhoneOS16.5.sdk.tar.xz https://github.com/xybp888/iOS-SDKs/releases/download/iOS-SDKs/iPhoneOS16.5.sdk.tar.xz
           tar -xf iPhoneOS16.5.sdk.tar.xz -C $HOME/theos/sdks/
+          rm iPhoneOS16.5.sdk.tar.xz
 
       - name: Compile Roothide Package
         env:
