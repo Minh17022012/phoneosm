@@ -9,10 +9,8 @@
 
 - (void)viewDidLoad {
     %orig;
-    // Tùy chỉnh giao diện bàn phím và chèn khung gợi ý tìm kiếm danh bạ
 }
 
-// Bắt sự kiện mỗi khi người dùng bấm phím số hoặc xóa số
 - (void)phonePad:(id)pad appendString:(NSString *)string {
     %orig;
     [self performSelector:@selector(phoneosm_updateT9Suggestions) withObject:nil afterDelay:0.05];
@@ -25,7 +23,6 @@
 
 %new
 - (void)phoneosm_updateT9Suggestions {
-    // Lấy chuỗi số đang gõ trên bàn phím
     NSString *currentQuery = nil;
     if ([self respondsToSelector:@selector(numericSearchString)]) {
         currentQuery = [self numericSearchString];
@@ -35,19 +32,17 @@
     UIVisualEffectView *suggestionBox = [keypadView viewWithTag:778899];
 
     if (!currentQuery || currentQuery.length == 0) {
-        // Nếu chưa gõ số thì ẩn hộp gợi ý đi
         [UIView animateWithDuration:0.2 animations:^{
             suggestionBox.alpha = 0.0;
         }];
         return;
     }
 
-    // Nếu chưa có khung gợi ý, tiến hành tạo mới dạng viên thuốc kính mờ phong cách Liquid Glass
     if (!suggestionBox) {
         CGFloat screenWidth = keypadView.bounds.size.width;
         CGFloat boxWidth = screenWidth - 32.0;
         CGFloat boxHeight = 90.0;
-        CGFloat boxY = 60.0; // Nằm phía trên bàn phím số
+        CGFloat boxY = 60.0;
         
         UIBlurEffect *blur = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterial];
         suggestionBox = [[UIVisualEffectView alloc] initWithEffect:blur];
@@ -58,10 +53,9 @@
         suggestionBox.layer.borderWidth = 0.5;
         suggestionBox.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.5].CGColor;
         
-        // Thêm nhãn hiển thị tên gợi ý và số điện thoại khớp
         UILabel *nameLbl = [[UILabel alloc] initWithFrame:CGRectMake(16, 12, boxWidth - 32, 24)];
         nameLbl.tag = 778901;
-        nameLbl.font = [UIFont systemFontOfSize:16.0 weight:UIFontWeightsemibold];
+        nameLbl.font = [UIFont systemFontOfSize:16.0 weight:UIFontWeightSemibold];
         nameLbl.textColor = [UIColor labelColor];
         [suggestionBox.contentView addSubview:nameLbl];
 
@@ -74,7 +68,6 @@
         [keypadView addSubview:suggestionBox];
     }
 
-    // Truy vấn danh bạ an toàn qua CNContactStore (chạy trên background thread để chống treo máy)
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         CNContactStore *store = [[CNContactStore alloc] init];
         NSArray *keys = @[CNContactGivenNameKey, CNContactFamilyNameKey, CNContactPhoneNumbersKey];
@@ -86,7 +79,6 @@
         [store enumerateContactsWithFetchRequest:request error:nil usingBlock:^(CNContact *contact, BOOL *stop) {
             for (CNLabeledValue<CNPhoneNumber *> *labelValue in contact.phoneNumbers) {
                 NSString *phoneNum = labelValue.value.stringValue;
-                // Lọc chuỗi số đơn giản để so khớp
                 NSString *cleanPhone = [[phoneNum componentsSeparatedByCharactersInSet:[[NSCharacterSet decimalDigitCharacterSet] invertedSet]] componentsJoinedByString:@""];
                 
                 if ([cleanPhone containsString:currentQuery]) {
@@ -109,7 +101,7 @@
                 suggestionBox.alpha = 1.0;
             } else {
                 nameLbl.text = [NSString stringWithFormat:@"Tìm kiếm số: %@", currentQuery];
-                phoneLbl.text = @"Không có trong danh bạ (Bấm để thêm mới)";
+                phoneLbl.text = @"Không tìm thấy trong danh bạ";
                 suggestionBox.alpha = 1.0;
             }
         });
