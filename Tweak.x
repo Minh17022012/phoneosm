@@ -13,6 +13,7 @@
         return;
     }
 
+    // Giữ nguyên 3 tab chính: Cuộc gọi, Danh bạ, Bàn phím
     if (self.viewControllers.count > 3) {
         NSMutableArray *filteredTabs = [NSMutableArray array];
         for (UIViewController *vc in self.viewControllers) {
@@ -32,11 +33,12 @@
 %new
 - (void)phoneosm_setupFloatingSearchButton {
     UIButton *searchBtn = [self.view viewWithTag:88991];
-    UITabBar *tabBar = self.tabBar;
-    if (!tabBar || tabBar.hidden) return;
+    if (!self.tabBar || self.tabBar.hidden) return;
 
-    CGFloat height = tabBar.frame.size.height;
-    if (height <= 0) height = 58.0;
+    CGFloat pillHeight = 56.0;
+    CGFloat bottomMargin = 24.0;
+    CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
+    CGFloat exactY = screenHeight - pillHeight - bottomMargin;
 
     if (!searchBtn) {
         searchBtn = [UIButton buttonWithType:UIButtonTypeCustom];
@@ -44,9 +46,9 @@
         
         UIBlurEffect *blur = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterial];
         UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:blur];
-        blurView.frame = CGRectMake(0, 0, height, height);
+        blurView.frame = CGRectMake(0, 0, pillHeight, pillHeight);
         blurView.userInteractionEnabled = NO;
-        blurView.layer.cornerRadius = height / 2.0;
+        blurView.layer.cornerRadius = pillHeight / 2.0;
         blurView.clipsToBounds = YES;
         [searchBtn addSubview:blurView];
 
@@ -55,10 +57,10 @@
         UIImageView *iconView = [[UIImageView alloc] initWithImage:searchImg];
         iconView.tintColor = [UIColor labelColor];
         iconView.contentMode = UIViewContentModeScaleAspectFit;
-        iconView.frame = CGRectMake((height - 24) / 2.0, (height - 24) / 2.0, 24, 24);
+        iconView.frame = CGRectMake((pillHeight - 24) / 2.0, (pillHeight - 24) / 2.0, 24, 24);
         [searchBtn addSubview:iconView];
 
-        searchBtn.layer.cornerRadius = height / 2.0;
+        searchBtn.layer.cornerRadius = pillHeight / 2.0;
         searchBtn.layer.borderWidth = 0.6;
         searchBtn.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.65].CGColor;
         searchBtn.layer.shadowColor = [UIColor blackColor].CGColor;
@@ -70,11 +72,10 @@
         [self.view addSubview:searchBtn];
     }
 
-    // Đặt tọa độ khớp chuẩn với frame của UITabBar bên dưới
+    // Gán tọa độ X, Y cố định đồng bộ tuyệt đối với Tab Bar
     CGFloat rightMargin = 16.0;
-    CGFloat xPos = self.view.bounds.size.width - height - rightMargin;
-    CGFloat yPos = tabBar.frame.origin.y; // Đồng bộ vị trí Y với thanh Tab Bar
-    searchBtn.frame = CGRectMake(xPos, yPos, height, height);
+    CGFloat xPos = self.view.bounds.size.width - pillHeight - rightMargin;
+    searchBtn.frame = CGRectMake(xPos, exactY, pillHeight, pillHeight);
     [self.view bringSubviewToFront:searchBtn];
 }
 
@@ -103,16 +104,17 @@
 - (void)setFrame:(CGRect)frame {
     if ([[[NSBundle mainBundle] bundleIdentifier] isEqualToString:@"com.apple.mobilephone"]) {
         CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
+        CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
         CGFloat leftMargin = 16.0;
         CGFloat rightMargin = 16.0;
         CGFloat gap = 12.0;
-        CGFloat pillHeight = 58.0;
+        CGFloat pillHeight = 56.0;
         CGFloat circleSize = pillHeight;
 
         frame.origin.x = leftMargin;
         frame.size.width = screenWidth - leftMargin - rightMargin - gap - circleSize;
         frame.size.height = pillHeight;
-        frame.origin.y = [UIScreen mainScreen].bounds.size.height - pillHeight - 24.0;
+        frame.origin.y = screenHeight - pillHeight - 24.0;
     }
     %orig(frame);
 }
