@@ -1,13 +1,11 @@
-ARCHS = arm64 arm64e
-TARGET := iphone:clang:latest:15.0
-THEOS_PACKAGE_SCHEME = roothide
+TARGET := iphone:clang:latest:16.0
+ARCHS := arm64e
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = phoneosm
+TWEAK_NAME := phoneosm
 
 phoneosm_FILES = Tweak.x
-phoneosm_CFLAGS = -fobjc-arc
-phoneosm_FRAMEWORKS = UIKit QuartzCore
+phoneosm_FRAMEWORKS = UIKit Foundation Contacts
 
 include $(THEOS_MAKE_PATH)/tweak.mk
