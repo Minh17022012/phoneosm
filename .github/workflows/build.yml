@@ -13,7 +13,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          brew install ldid xz dpkg make
+          brew install ldid xz dpkg
 
       - name: Setup Theos Environment
         run: |
